@@ -1,5 +1,8 @@
 #!/usr/bin/env -S npx tsx
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { createInterface } from 'node:readline/promises'
+import dotenv from 'dotenv'
 import { AgentLoop, SessionLog, ToolRegistry, consoleLogger, silentLogger } from '@open-agent/agent'
 import { InMemoryMemoryProvider, Mem0Provider, SupermemoryProvider, memoryPlugin } from '@open-agent/memory'
 import type { MemoryProvider } from '@open-agent/memory'
@@ -9,6 +12,10 @@ import { Context } from '@open-agent/context'
 import { loadConfigFromEnv } from './config.js'
 import { createTerminalApprovalHandler } from './approval.js'
 import { runRepl, type AbortRef } from './repl.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+// apps/cli/src -> apps/cli -> apps -> repo root
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') })
 
 async function main() {
   const result = loadConfigFromEnv(process.env)

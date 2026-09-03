@@ -15,7 +15,8 @@
     "@open-agent/agent": "*",
     "@open-agent/memory": "*",
     "@open-agent/providers": "*",
-    "@open-agent/tools-browser": "*"
+    "@open-agent/tools-browser": "*",
+    "dotenv": "^16.4.5"
   },
   "devDependencies": {
     "typescript": "^5.6.0",
