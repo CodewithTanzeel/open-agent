@@ -146,7 +146,7 @@ describe('GeminiProvider', () => {
     })
 
     await expect(provider.generate({ messages: [], tools: [] }, new AbortController().signal)).rejects.toThrow(
-      'generateContent?key=test-key responded 400: Bad Request',
+      'generateContent?key=[REDACTED] responded 400: Bad Request',
     )
   })
 })
