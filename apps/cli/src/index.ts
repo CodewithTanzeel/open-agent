@@ -11,7 +11,14 @@ import { mountBrowserUseTools } from '@open-agent/tools-browser'
 import { Context } from '@open-agent/context'
 import { loadConfigFromEnv } from './config.js'
 import { createTerminalApprovalHandler } from './approval.js'
-import { runRepl, type AbortRef } from './repl.js'
+import { runRepl, type AbortRef, type ReplIO } from './repl.js'
+
+/**
+ * The Ink TUI needs a real TTY on both ends to take over the screen. Fall
+ * back to the plain readline REPL for anything else (CI, `| cat`, piped
+ * input/output, etc) — set `CLI_NO_TUI=1` to force the fallback locally.
+ */
+const useTui = Boolean(process.stdin.isTTY) && Boolean(process.stdout.isTTY) && !process.env.CLI_NO_TUI
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // apps/cli/src -> apps/cli -> apps -> repo root
@@ -29,9 +36,54 @@ async function main() {
   const ctx = new Context()
   const sessions = new SessionLog()
   const tools = new ToolRegistry()
+  const activeAbort: AbortRef = { current: null }
 
-  const rl = createInterface({ input: process.stdin, output: process.stdout })
-  tools.onApproval(createTerminalApprovalHandler((question) => rl.question(question)))
+  let io: ReplIO
+  let ask: (question: string) => Promise<string>
+  let teardown: () => void
+
+  if (useTui) {
+    const { mountTui } = await import('./tui/mount.js')
+    const tui = mountTui({
+      onInterrupt: () => {
+        if (activeAbort.current) {
+          tui.io.setStatus('[cancelling current task...]')
+          activeAbort.current.abort()
+        } else {
+          tui.unmount()
+          process.exit(0)
+        }
+      },
+    })
+    io = tui.io
+    ask = tui.io.ask
+    teardown = () => tui.unmount()
+  } else {
+    const rl = createInterface({ input: process.stdin, output: process.stdout })
+    io = {
+      async prompt() {
+        try {
+          return await rl.question('> ')
+        } catch {
+          return null // readline closed (e.g. Ctrl+D)
+        }
+      },
+      write: (text) => process.stdout.write(text),
+    }
+    ask = (question) => rl.question(question)
+    process.on('SIGINT', () => {
+      if (activeAbort.current) {
+        console.log('\n[cancelling current task...]')
+        activeAbort.current.abort()
+      } else {
+        rl.close()
+        process.exit(0)
+      }
+    })
+    teardown = () => rl.close()
+  }
+
+  tools.onApproval(createTerminalApprovalHandler(ask))
 
   let disposeBrowserTools: (() => void) | undefined
   if (config.browserUse) {
@@ -61,33 +113,15 @@ async function main() {
     logger: process.env.DEBUG ? consoleLogger : silentLogger,
   })
 
-  const activeAbort: AbortRef = { current: null }
-  process.on('SIGINT', () => {
-    if (activeAbort.current) {
-      console.log('\n[cancelling current task...]')
-      activeAbort.current.abort()
-    } else {
-      rl.close()
-      process.exit(0)
-    }
-  })
-
   try {
-    const prompt = async () => {
-      try {
-        return await rl.question('> ')
-      } catch {
-        return null // readline closed (e.g. Ctrl+D)
-      }
-    }
     const memory = ctx.get<MemoryProvider>('memory')!
     const containerTag = process.env.CLI_USER_ID ?? 'cli-user'
-    await runRepl(loop, sessions, { prompt, write: (text) => process.stdout.write(text) }, activeAbort, {
+    await runRepl(loop, sessions, io, activeAbort, {
       provider: memory,
       containerTag,
     })
   } finally {
-    rl.close()
+    teardown()
     disposeBrowserTools?.()
   }
 }

@@ -75,6 +75,18 @@ describe('runRepl', () => {
     expect(remembered.length).toBeGreaterThan(0)
   })
 
+  it('sets a transient status while the task runs and clears it afterwards, if the IO supports it', async () => {
+    const sessions = new SessionLog()
+    const loop = new AgentLoop({ sessions, tools: new ToolRegistry(), llm: new EchoAdapter() })
+    const io = fakeIo(['hello there'])
+    const statuses: (string | null)[] = []
+    ;(io as ReplIO).setStatus = (text) => statuses.push(text)
+
+    await runRepl(loop, sessions, io, { current: null })
+
+    expect(statuses).toEqual(['thinking…', null])
+  })
+
   it('reports a non-completed task status instead of silently continuing', async () => {
     const sessions = new SessionLog()
     const loop = new AgentLoop({
