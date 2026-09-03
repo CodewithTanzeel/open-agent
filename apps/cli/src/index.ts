@@ -4,12 +4,13 @@ import { fileURLToPath } from 'node:url'
 import { createInterface } from 'node:readline/promises'
 import dotenv from 'dotenv'
 import { AgentLoop, SessionLog, ToolRegistry, consoleLogger, silentLogger } from '@open-agent/agent'
+import type { LlmAdapter } from '@open-agent/agent'
 import { InMemoryMemoryProvider, Mem0Provider, SupermemoryProvider, memoryPlugin } from '@open-agent/memory'
 import type { MemoryProvider } from '@open-agent/memory'
-import { OpenAiCompatibleProvider } from '@open-agent/providers'
+import { AnthropicProvider, GeminiProvider, OpenAiCompatibleProvider, ProviderFallbackAdapter } from '@open-agent/providers'
 import { mountBrowserUseTools } from '@open-agent/tools-browser'
 import { Context } from '@open-agent/context'
-import { loadConfigFromEnv } from './config.js'
+import { loadConfigFromEnv, type LlmProviderConfig } from './config.js'
 import { createTerminalApprovalHandler } from './approval.js'
 import { runRepl, type AbortRef, type ReplIO } from './repl.js'
 
@@ -24,6 +25,32 @@ dotenv.config({ path: path.resolve(__dirname, '../../../.env') })
  * (in the shell or in `.env`, since dotenv has already loaded above).
  */
 const useTui = Boolean(process.stdin.isTTY) && Boolean(process.stdout.isTTY) && !process.env.CLI_NO_TUI
+
+function buildLlmAdapter(config: LlmProviderConfig, env: NodeJS.ProcessEnv): LlmAdapter {
+  const adapters: LlmAdapter[] = []
+  // Priority order: anthropic, gemini, openai-compatible. Selected provider goes first.
+  const order: LlmProviderConfig['provider'][] = ['anthropic', 'gemini', 'openai-compatible']
+  for (const provider of order) {
+    if (provider === 'anthropic' && env.ANTHROPIC_API_KEY && env.ANTHROPIC_MODEL) {
+      adapters.push(new AnthropicProvider({ apiKey: env.ANTHROPIC_API_KEY, model: env.ANTHROPIC_MODEL, baseURL: env.ANTHROPIC_BASE_URL }))
+    }
+    if (provider === 'gemini' && env.GEMINI_API_KEY && env.GEMINI_MODEL) {
+      adapters.push(new GeminiProvider({ apiKey: env.GEMINI_API_KEY, model: env.GEMINI_MODEL, baseURL: env.GEMINI_BASE_URL }))
+    }
+    if (provider === 'openai-compatible' && env.OPENAI_API_KEY && env.OPENAI_BASE_URL && env.OPENAI_MODEL) {
+      adapters.push(new OpenAiCompatibleProvider({ baseURL: env.OPENAI_BASE_URL, apiKey: env.OPENAI_API_KEY, model: env.OPENAI_MODEL }))
+    }
+  }
+  if (adapters.length === 0) {
+    // unreachable: loadConfigFromEnv already validated
+    throw new Error('no LLM provider configured')
+  }
+  if (adapters.length === 1) return adapters[0]
+  return new ProviderFallbackAdapter({
+    adapters,
+    notify: (msg) => console.error(`[llm] ${msg}`),
+  })
+}
 
 async function main() {
   const result = loadConfigFromEnv(process.env)
@@ -106,7 +133,7 @@ async function main() {
     ctx.plugin(memoryPlugin(new InMemoryMemoryProvider()))
   }
 
-  const llm = new OpenAiCompatibleProvider(config.llm)
+  const llm = buildLlmAdapter(config.llm, process.env)
   const loop = new AgentLoop({
     sessions,
     tools,
