@@ -16,4 +16,17 @@ const llm = new OpenAiCompatibleProvider({
 })
 ```
 
-Anthropic and Gemini need dedicated adapters since their request/response shapes diverge from the OpenAI-compatible one — not yet implemented (Milestone 2).
+## `GeminiProvider`
+
+Dedicated adapter for Google's Gemini GenerateContent API. Maps system instructions to `systemInstruction`, tools to `functionDeclarations`, and resolves tool call IDs to names for function responses.
+
+```ts
+import { GeminiProvider } from '@open-agent/providers'
+
+const llm = new GeminiProvider({
+  apiKey: process.env.GEMINI_API_KEY!,
+  model: 'gemini-2.0-flash',
+})
+```
+
+All providers accept an optional `baseURL` override and `fetchFn` for testing.
