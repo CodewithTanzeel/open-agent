@@ -1,4 +1,4 @@
-import type { Context, Disposer } from '@open-agent/context'
+import type { Context, Disposer, Plugin } from '@open-agent/context'
 import type { PermissionLevel, ToolDefinition, ToolRegistry } from '@open-agent/agent'
 import { mcpToolDefinition, spawnMcpServer } from '@open-agent/tools-mcp'
 import type { McpStdioClient } from '@open-agent/tools-mcp'
@@ -72,4 +72,32 @@ export function withContext(ctx: Context, options: BrowserUseOptions = {}): Prom
   const registry = ctx.get<ToolRegistry>('tools')
   if (!registry) throw new Error('ctx.tools is not mounted — install toolsPlugin from @open-agent/agent first')
   return mountBrowserUseTools(registry, options)
+}
+
+/**
+ * A Context plugin that wires up browser-use tools. It declares an inject
+ * dependency on 'tools' so it waits for the ToolRegistry to exist, then
+ * spawns the MCP server and registers its tools as a background effect.
+ */
+export function browserToolsPlugin(options: BrowserUseOptions = {}): Plugin {
+  return {
+    inject: ['tools'],
+    apply(ctx: Context) {
+      const registry = ctx.get<ToolRegistry>('tools')!
+      let dispose: Disposer | undefined
+      let disposed = false
+      mountBrowserUseTools(registry, options)
+        .then((unmount) => {
+          dispose = unmount
+          if (disposed) unmount()
+        })
+        .catch((err) => {
+          console.error('[browser-use] failed to mount MCP tools:', err instanceof Error ? err.message : String(err))
+        })
+      return () => {
+        disposed = true
+        if (dispose) dispose()
+      }
+    },
+  }
 }
