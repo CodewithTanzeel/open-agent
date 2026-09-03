@@ -5,6 +5,8 @@ export interface ReplIO {
   /** Resolves to the next line of input, or `null` on EOF (Ctrl+D). */
   prompt(): Promise<string | null>
   write(text: string): void
+  /** Optional transient status line (e.g. a TUI's "thinking…" indicator) shown while a task runs. */
+  setStatus?(text: string | null): void
 }
 
 /** Lets the caller cancel whichever task is currently running (e.g. from a SIGINT handler). */
@@ -53,8 +55,10 @@ export async function runRepl(
 
     const controller = new AbortController()
     activeAbort.current = controller
+    io.setStatus?.('thinking…')
     const task = await agentLoop.run(taskInput, controller.signal)
     activeAbort.current = null
+    io.setStatus?.(null)
 
     if (task.status === 'completed') {
       const messages = sessions.deriveMessages(task.id)
