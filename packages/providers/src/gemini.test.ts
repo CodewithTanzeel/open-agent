@@ -132,6 +132,37 @@ describe('GeminiProvider', () => {
     ])
   })
 
+  it('warns when toolCallId does not resolve to any known tool', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
+    const fetchFn = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ candidates: [{ content: { parts: [{ text: 'Done.' }] } }] }),
+    })
+
+    const provider = new GeminiProvider({
+      apiKey: 'test-key',
+      model: 'gemini-2.0-flash',
+      fetchFn,
+    })
+
+    const request: LlmRequest = {
+      messages: [
+        { role: 'user', content: 'What?' },
+        // stale toolCallId with no matching assistant message
+        { role: 'tool', content: 'result', toolCallId: 'unknown-id' },
+      ],
+      tools: [],
+    }
+
+    await provider.generate(request, new AbortController().signal)
+
+    expect(warnSpy).toHaveBeenCalledOnce()
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('unknown toolCallId "unknown-id"'),
+    )
+    warnSpy.mockRestore()
+  })
+
   it('throws on network/api error', async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: false,
@@ -146,7 +177,7 @@ describe('GeminiProvider', () => {
     })
 
     await expect(provider.generate({ messages: [], tools: [] }, new AbortController().signal)).rejects.toThrow(
-      'generateContent?key=test-key responded 400: Bad Request',
+      'generateContent?key=[REDACTED] responded 400: Bad Request',
     )
   })
 })

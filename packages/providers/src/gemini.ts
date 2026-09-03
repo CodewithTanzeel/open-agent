@@ -87,6 +87,10 @@ export class GeminiProvider implements LlmAdapter {
           currentParts.push({
             functionResponse: { name: toolName, response: { result: msg.content } },
           })
+        } else {
+          console.warn(
+            `[GeminiProvider] tool result for unknown toolCallId "${msg.toolCallId}" — result will not be sent to the model`,
+          )
         }
       } else if (msg.role === 'assistant') {
         if (msg.content) {
@@ -128,7 +132,8 @@ export class GeminiProvider implements LlmAdapter {
     })
 
     if (!response.ok) {
-      throw new Error(`${url} responded ${response.status}: ${await response.text()}`)
+      const safeUrl = url.replace(/key=[^&]+/, 'key=[REDACTED]')
+      throw new Error(`${safeUrl} responded ${response.status}: ${await response.text()}`)
     }
 
     const data = (await response.json()) as {
