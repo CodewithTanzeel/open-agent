@@ -85,14 +85,17 @@ export function browserToolsPlugin(options: BrowserUseOptions = {}): Plugin {
     apply(ctx: Context) {
       const registry = ctx.get<ToolRegistry>('tools')!
       let dispose: Disposer | undefined
+      let disposed = false
       mountBrowserUseTools(registry, options)
         .then((unmount) => {
           dispose = unmount
+          if (disposed) unmount()
         })
         .catch((err) => {
           console.error('[browser-use] failed to mount MCP tools:', err instanceof Error ? err.message : String(err))
         })
       return () => {
+        disposed = true
         if (dispose) dispose()
       }
     },
