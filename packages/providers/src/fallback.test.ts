@@ -126,4 +126,67 @@ describe('ProviderFallbackAdapter', () => {
     await fb.generate({ messages: [], tools: [] }, new AbortController().signal)
     expect(a.fn).toHaveBeenCalledTimes(2) // stateless: starts at a again
   })
+
+  it('does not notify when the first adapter succeeds outright', async () => {
+    const notifications: string[] = []
+    const a = makeAdapter('a')
+    const b = makeAdapter('b')
+    const fb = new ProviderFallbackAdapter({
+      adapters: [a.adapter, b.adapter],
+      notify: (msg) => notifications.push(msg),
+    })
+
+    await fb.generate({ messages: [], tools: [] }, new AbortController().signal)
+
+    expect(notifications).toHaveLength(0)
+  })
+
+  it('names the adapter it started from when reporting a switch', async () => {
+    const notifications: string[] = []
+    const a = makeAdapter('a', { message: '429 Rate limit' })
+    const b = makeAdapter('b')
+    const fb = new ProviderFallbackAdapter({
+      adapters: [a.adapter, b.adapter],
+      notify: (msg) => notifications.push(msg),
+    })
+
+    await fb.generate({ messages: [], tools: [] }, new AbortController().signal)
+
+    expect(notifications).toContain('switched from a to b')
+  })
+
+  it('does not treat 400 as a fallback trigger', async () => {
+    const bad = makeAdapter('bad', { message: 'provider responded 400: Bad Request' })
+    const ok = makeAdapter('ok')
+    const fb = new ProviderFallbackAdapter({ adapters: [bad.adapter, ok.adapter] })
+
+    await expect(fb.generate({ messages: [], tools: [] }, new AbortController().signal)).rejects.toThrow(
+      'responded 400',
+    )
+    expect(ok.fn).not.toHaveBeenCalled()
+  })
+
+  it('does not fall back on a non-rate-limit error that merely contains 429', async () => {
+    const bad = makeAdapter('bad', { message: 'provider responded 500 (request id req_4291a)' })
+    const ok = makeAdapter('ok')
+    const fb = new ProviderFallbackAdapter({ adapters: [bad.adapter, ok.adapter] })
+
+    await expect(fb.generate({ messages: [], tools: [] }, new AbortController().signal)).rejects.toThrow(
+      'responded 500',
+    )
+    expect(ok.fn).not.toHaveBeenCalled()
+  })
+
+  it('aborts during backoff instead of waiting out the delay', async () => {
+    const a = makeAdapter('a', { message: '429 Rate limit' })
+    const b = makeAdapter('b')
+    const fb = new ProviderFallbackAdapter({ adapters: [a.adapter, b.adapter] })
+    const ctrl = new AbortController()
+
+    const pending = fb.generate({ messages: [], tools: [] }, ctrl.signal)
+    ctrl.abort(new Error('cancelled by caller'))
+
+    await expect(pending).rejects.toThrow('cancelled by caller')
+    expect(b.fn).not.toHaveBeenCalled()
+  })
 })
