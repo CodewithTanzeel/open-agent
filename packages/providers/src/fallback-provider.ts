@@ -50,6 +50,7 @@ export class ProviderFallbackAdapter implements LlmAdapter {
     // adapter. A shared mutable cursor races under concurrent generate() calls,
     // so preferred-provider order is re-derived per call instead.
     let delay = 0
+    let lastError: unknown
     for (let i = 0; i < adapters.length; i++) {
       const adapter = adapters[i]
       if (signal.aborted) throw signal.reason ?? new Error('aborted')
@@ -69,6 +70,7 @@ export class ProviderFallbackAdapter implements LlmAdapter {
         // 401/403/429 indicate transient or auth problems worth retrying elsewhere.
         const code = parseStatusCode(msg)
         if (code !== null && FALLBACKABLE_CODES.has(code)) {
+          lastError = err
           this.notify(`provider ${adapter.name} failed (${msg}), trying fallback`)
           delay = Math.min(delay * 2 + 100, 5_000) // simple exponential backoff, capped at 5s
           continue
@@ -76,7 +78,10 @@ export class ProviderFallbackAdapter implements LlmAdapter {
         throw err
       }
     }
-    throw new Error('all providers exhausted')
+    // Carry the final provider error as `cause`. Without it a single misconfigured
+    // adapter reports "all providers exhausted", which reads as rate limiting and
+    // hides the actual 401 from a bad API key.
+    throw new Error('all providers exhausted', { cause: lastError })
   }
 
   private notify(msg: string) {

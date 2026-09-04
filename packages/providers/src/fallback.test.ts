@@ -189,4 +189,16 @@ describe('ProviderFallbackAdapter', () => {
     await expect(pending).rejects.toThrow('cancelled by caller')
     expect(b.fn).not.toHaveBeenCalled()
   })
+
+  it('carries the last provider error as `cause` when all are exhausted', async () => {
+    const a = makeAdapter('a', { message: 'provider responded 429: rate limited' })
+    const b = makeAdapter('b', { message: 'provider responded 401: bad api key' })
+    const fb = new ProviderFallbackAdapter({ adapters: [a.adapter, b.adapter] })
+
+    const err = await fb.generate({ messages: [], tools: [] }, new AbortController().signal).catch((e: unknown) => e)
+
+    expect(err).toBeInstanceOf(Error)
+    expect((err as Error).message).toBe('all providers exhausted')
+    expect(((err as Error).cause as Error).message).toContain('401')
+  })
 })
