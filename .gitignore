@@ -8,3 +8,6 @@ build/
 .DS_Store
 coverage/
 .turbo/
+
+# Claude Code local (per-developer) settings; shared config belongs in .claude/settings.json
+.claude/settings.local.json

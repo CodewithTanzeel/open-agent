@@ -30,3 +30,16 @@ const llm = new GeminiProvider({
 ```
 
 All providers accept an optional `baseURL` override and `fetchFn` for testing.
+
+## `AnthropicProvider`
+
+Dedicated adapter for Anthropic's Messages API. Maps system instructions to the root `system` field, tools to `tools[].input_schema`, and handles the alternating `user`/`assistant` role requirement with tool results coalesced into single user messages.
+
+```ts
+import { AnthropicProvider } from '@open-agent/providers'
+
+const llm = new AnthropicProvider({
+  apiKey: process.env.ANTHROPIC_API_KEY!,
+  model: 'claude-3-5-sonnet-20241022',
+})
+```
