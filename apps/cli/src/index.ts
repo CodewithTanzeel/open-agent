@@ -7,7 +7,12 @@ import { AgentLoop, SessionLog, ToolRegistry, consoleLogger, silentLogger } from
 import type { LlmAdapter } from '@open-agent/agent'
 import { InMemoryMemoryProvider, Mem0Provider, SupermemoryProvider, memoryPlugin } from '@open-agent/memory'
 import type { MemoryProvider } from '@open-agent/memory'
-import { AnthropicProvider, GeminiProvider, OpenAiCompatibleProvider, ProviderFallbackAdapter } from '@open-agent/providers'
+import {
+  AnthropicProvider,
+  GeminiProvider,
+  OpenAiCompatibleProvider,
+  ProviderFallbackAdapter,
+} from '@open-agent/providers'
 import { mountBrowserUseTools } from '@open-agent/tools-browser'
 import { Context } from '@open-agent/context'
 import { loadConfigFromEnv, type LlmProviderConfig } from './config.js'
@@ -32,13 +37,27 @@ function buildLlmAdapter(config: LlmProviderConfig, env: NodeJS.ProcessEnv): Llm
   const order: LlmProviderConfig['provider'][] = ['anthropic', 'gemini', 'openai-compatible']
   for (const provider of order) {
     if (provider === 'anthropic' && env.ANTHROPIC_API_KEY && env.ANTHROPIC_MODEL) {
-      adapters.push(new AnthropicProvider({ apiKey: env.ANTHROPIC_API_KEY, model: env.ANTHROPIC_MODEL, baseURL: env.ANTHROPIC_BASE_URL }))
+      adapters.push(
+        new AnthropicProvider({
+          apiKey: env.ANTHROPIC_API_KEY,
+          model: env.ANTHROPIC_MODEL,
+          baseURL: env.ANTHROPIC_BASE_URL,
+        }),
+      )
     }
     if (provider === 'gemini' && env.GEMINI_API_KEY && env.GEMINI_MODEL) {
-      adapters.push(new GeminiProvider({ apiKey: env.GEMINI_API_KEY, model: env.GEMINI_MODEL, baseURL: env.GEMINI_BASE_URL }))
+      adapters.push(
+        new GeminiProvider({ apiKey: env.GEMINI_API_KEY, model: env.GEMINI_MODEL, baseURL: env.GEMINI_BASE_URL }),
+      )
     }
     if (provider === 'openai-compatible' && env.OPENAI_API_KEY && env.OPENAI_BASE_URL && env.OPENAI_MODEL) {
-      adapters.push(new OpenAiCompatibleProvider({ baseURL: env.OPENAI_BASE_URL, apiKey: env.OPENAI_API_KEY, model: env.OPENAI_MODEL }))
+      adapters.push(
+        new OpenAiCompatibleProvider({
+          baseURL: env.OPENAI_BASE_URL,
+          apiKey: env.OPENAI_API_KEY,
+          model: env.OPENAI_MODEL,
+        }),
+      )
     }
   }
   if (adapters.length === 0) {

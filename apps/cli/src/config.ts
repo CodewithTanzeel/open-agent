@@ -37,7 +37,8 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv): ConfigResult {
     if (!baseURL || !apiKey || !model) {
       return {
         ok: false,
-        error: 'Set ANTHROPIC_API_KEY+ANTHROPIC_MODEL, or GEMINI_API_KEY+GEMINI_MODEL, or OPENAI_BASE_URL+OPENAI_API_KEY+OPENAI_MODEL (see .env.example).',
+        error:
+          'Set ANTHROPIC_API_KEY+ANTHROPIC_MODEL, or GEMINI_API_KEY+GEMINI_MODEL, or OPENAI_BASE_URL+OPENAI_API_KEY+OPENAI_MODEL (see .env.example).',
       }
     }
     llm = { provider: 'openai-compatible', baseURL, apiKey, model }

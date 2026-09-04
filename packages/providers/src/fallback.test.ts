@@ -6,7 +6,10 @@ const mockResponse = (): LlmResponse => ({
   message: { role: 'assistant', content: 'ok' },
 })
 
-const makeAdapter = (name: string, fail?: { message: string }): { adapter: LlmAdapter; fn: Mock<(...args: unknown[]) => unknown> } => {
+const makeAdapter = (
+  name: string,
+  fail?: { message: string },
+): { adapter: LlmAdapter; fn: Mock<(...args: unknown[]) => unknown> } => {
   const fn = vi.fn() as Mock<(...args: unknown[]) => unknown>
   if (fail) {
     fn.mockRejectedValueOnce(new Error(fail.message))

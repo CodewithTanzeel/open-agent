@@ -157,9 +157,7 @@ describe('GeminiProvider', () => {
     await provider.generate(request, new AbortController().signal)
 
     expect(warnSpy).toHaveBeenCalledOnce()
-    expect(warnSpy).toHaveBeenCalledWith(
-      expect.stringContaining('unknown toolCallId "unknown-id"'),
-    )
+    expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining('unknown toolCallId "unknown-id"'))
     warnSpy.mockRestore()
   })
 

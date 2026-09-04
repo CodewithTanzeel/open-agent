@@ -4,7 +4,10 @@ import { loadConfigFromEnv } from './config.js'
 describe('loadConfigFromEnv', () => {
   it('fails when no provider keys are set', () => {
     const result = loadConfigFromEnv({})
-    expect(result).toEqual({ ok: false, error: expect.stringMatching(/ANTHROPIC_API_KEY|GEMINI_API_KEY|OPENAI_BASE_URL/) })
+    expect(result).toEqual({
+      ok: false,
+      error: expect.stringMatching(/ANTHROPIC_API_KEY|GEMINI_API_KEY|OPENAI_BASE_URL/),
+    })
   })
 
   it('parses anthropic config', () => {
@@ -62,7 +65,12 @@ describe('loadConfigFromEnv', () => {
     expect(result).toEqual({
       ok: true,
       config: {
-        llm: { provider: 'openai-compatible', baseURL: 'https://api.openai.com/v1', apiKey: 'sk-x', model: 'gpt-4o-mini' },
+        llm: {
+          provider: 'openai-compatible',
+          baseURL: 'https://api.openai.com/v1',
+          apiKey: 'sk-x',
+          model: 'gpt-4o-mini',
+        },
         browserUse: false,
         memory: { provider: 'none' },
       },
