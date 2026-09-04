@@ -113,22 +113,17 @@ describe('ProviderFallbackAdapter', () => {
     expect(notifications).toHaveLength(0)
   })
 
-  it('rotates to next adapter after each generate call', async () => {
+  // With stateless per-call rotation (no shared mutable index), each call
+  // independently tries adapters starting from the first. Rotation between
+  // sequential calls is not preserved — this is the intentional fix for the
+  // concurrent-race bug (fallback-provider.ts line 10/25).
+  it('uses stateless rotation (always starts at first adapter per call)', async () => {
     const a = makeAdapter('a')
     const b = makeAdapter('b')
-    const c = makeAdapter('c')
-    const fb = new ProviderFallbackAdapter({ adapters: [a.adapter, b.adapter, c.adapter] })
-
+    const fb = new ProviderFallbackAdapter({ adapters: [a.adapter, b.adapter] })
     await fb.generate({ messages: [], tools: [] }, new AbortController().signal)
     expect(a.fn).toHaveBeenCalled()
-
     await fb.generate({ messages: [], tools: [] }, new AbortController().signal)
-    expect(b.fn).toHaveBeenCalled()
-
-    await fb.generate({ messages: [], tools: [] }, new AbortController().signal)
-    expect(c.fn).toHaveBeenCalled()
-
-    await fb.generate({ messages: [], tools: [] }, new AbortController().signal)
-    expect(a.fn).toHaveBeenCalledTimes(2)
+    expect(a.fn).toHaveBeenCalledTimes(2) // stateless: starts at a again
   })
 })

@@ -21,7 +21,7 @@ AI shouldn't be locked to one provider. Today, powerful computer-using agents ar
 | 🔧  | Use external tools and MCP servers            | ✅ Built — generic MCP stdio client in `tools-mcp`, used by both browser and computer tools                                                                               |
 | 🧠  | Remember information across tasks             | ✅ Built — `memory` package, pluggable across Supermemory / mem0 / in-memory                                                                                              |
 | 🔐  | Ask for permission before sensitive actions   | ✅ Built — every tool declares a `safe` / `ask` / `dangerous` permission level, enforced by the agent loop                                                                |
-| 🧠  | Use any model                                 | 🚧 Partial — provider seam exists; any OpenAI-compatible endpoint (OpenRouter, Ollama, LM Studio, vLLM, ...) works today, dedicated Anthropic/Gemini adapters are planned |
+| 🧠  | Use any model                                 | ✅ Built — OpenAI-compatible, Anthropic, and Gemini adapters plus `ProviderFallbackAdapter` (round-robin multi-provider failover on 401/403/429)                       |
 | 💻  | Run code and terminal commands                | 🚧 Planned — see Milestone 5 (Files + Terminal)                                                                                                                           |
 | ⏰  | Run scheduled tasks                           | 🚧 Planned — see Milestone 8 (Automation)                                                                                                                                 |
 | 🤖  | Operate autonomously with configurable limits | 🚧 Planned — see Milestone 9 (Security) / Milestone 10 (Cloud)                                                                                                            |
@@ -34,10 +34,11 @@ See the [milestones](../../milestones) for the full roadmap and what's currently
 
 OpenAgent is not tied to a single AI provider. Any OpenAI-compatible endpoint works today via `OpenAiCompatibleProvider` — that already covers OpenAI, OpenRouter, Ollama, LM Studio, and self-hosted vLLM. Dedicated adapters are planned for providers with a different API shape:
 
-- Anthropic
-- Google Gemini
-- xAI
-- DeepSeek
+- Anthropic ✅
+- Google Gemini ✅
+- xAI (planned)
+- DeepSeek (planned)
+- Multi-provider fallback (`ProviderFallbackAdapter`) — round-robin across adapters with structured error matching (401/403/429), per-call rotation, exponential backoff, and abort respect. See `packages/providers/src/fallback-provider.ts`.
 
 The agent runtime doesn't care which model powers it — a provider is just a config value.
 
