@@ -44,7 +44,12 @@ export class ProviderFallbackAdapter implements LlmAdapter {
         // 401/403/429 indicate transient or auth problems worth retrying elsewhere.
         const code = parseFallbackCode(msg)
         const isFallbackable =
-          code === 401 || code === 403 || code === 429 || msg.includes('401') || msg.includes('403') || msg.includes('429')
+          code === 401 ||
+          code === 403 ||
+          code === 429 ||
+          msg.includes('401') ||
+          msg.includes('403') ||
+          msg.includes('429')
         if (isFallbackable) {
           this.notify(`provider ${adapter.name} failed (${msg}), trying fallback`)
           delay = Math.min(delay * 2 + 100, 5_000) // simple exponential backoff, capped at 5s
