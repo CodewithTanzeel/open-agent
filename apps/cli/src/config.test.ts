@@ -18,6 +18,7 @@ describe('loadConfigFromEnv', () => {
       config: {
         llm: { baseURL: 'https://api.openai.com/v1', apiKey: 'sk-x', model: 'gpt-4o-mini' },
         browser: { enabled: false, profileDir: undefined, keepProfile: false, allowEnv: undefined },
+        computer: { enabled: false, model: undefined },
         http: { enabled: false, allowedHosts: undefined, deniedHosts: undefined, allowLocal: false, secrets: {} },
         files: { enabled: false, root: undefined, deny: undefined, allow: undefined, readOnly: false },
         workspace: { session: false, base: undefined },
