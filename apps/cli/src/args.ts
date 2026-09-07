@@ -64,7 +64,7 @@ export function parseCliArgs(argv: string[]): ArgsResult {
   } catch (err) {
     return { ok: false, error: `${err instanceof Error ? err.message : String(err)}\n\n${USAGE}` }
   }
-  if (values.help) return { ok: true, args: { mode: 'repl', approveAsk: false, resume: undefined, history: false, help: true } }
+  if (values.help) return { ok: true, args: { mode: 'repl', approveAsk: false, resume: undefined, help: true } }
 
   // parseArgs always returns a string for `resume`. Treat `--resume` (no value)
   // as `true` (resume most recent) by leaving the value undefined; treat a
