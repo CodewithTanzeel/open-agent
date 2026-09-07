@@ -18,6 +18,24 @@ export class SessionLog {
     return this.events.filter((e) => e.taskId === taskId)
   }
 
+  /** Return every task id that appears in the durable log. */
+  findTasks(): string[] {
+    const ids = new Set<string>()
+    for (const e of this.events) ids.add(e.taskId)
+    return Array.from(ids).sort()
+  }
+
+  /** Summarize a completed task from its last assistant message or turn/end. */
+  getTaskSummary(taskId: string): { taskId: string; status: string; summary: string } | undefined {
+    const ev = this.all(taskId)
+    if (!ev.length) return undefined
+    const end = ev.filter((e) => e.type === 'turn/end').pop()
+    const lastMsg = ev.filter((e) => e.type === 'assistant/message').pop()
+    const status = end ? end.reason : 'unknown'
+    const summary = lastMsg ? (typeof lastMsg.message.content === 'string' ? lastMsg.message.content.slice(0, 120) : '...') : 'No message'
+    return { taskId, status, summary }
+  }
+
   /** Project the model-visible message history out of the durable log. */
   deriveMessages(taskId: string): Message[] {
     const messages: Message[] = []
