@@ -1,7 +1,8 @@
 export interface McpServerConfig {
   id: string
   name: string
-  endpoint: string
+  /** Absent for stdio servers, which are spawned by `command` rather than dialled. */
+  endpoint?: string
   transport: 'stdio' | 'sse'
   command?: string[]
   env?: Record<string, string>
@@ -9,5 +10,5 @@ export interface McpServerConfig {
 
 export interface McpDiscoveryProvider {
   name: string
-  discover(configPath?: string): Promise<{ servers: McpServerConfig[]; errors: string[] }>
+  discover(configPath?: string | URL): Promise<{ servers: McpServerConfig[]; errors: string[] }>
 }

@@ -1,6 +1,12 @@
-import { readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { readFile } from 'node:fs/promises'
 import type { McpDiscoveryProvider, McpServerConfig } from './discovery.js'
+
+const TRANSPORTS = ['stdio', 'sse'] as const
+type Transport = (typeof TRANSPORTS)[number]
+
+function isTransport(value: string): value is Transport {
+  return (TRANSPORTS as readonly string[]).includes(value)
+}
 
 interface RawMcpConfig {
   servers?: Array<{
@@ -17,12 +23,11 @@ interface RawMcpConfig {
 export class ConfigDiscoveryProvider implements McpDiscoveryProvider {
   readonly name = 'config'
 
-  async discover(configPath = 'mcp.json'): Promise<{ servers: McpServerConfig[]; errors: string[] }> {
+  async discover(configPath: string | URL = 'mcp.json'): Promise<{ servers: McpServerConfig[]; errors: string[] }> {
     const errors: string[] = []
     let raw: RawMcpConfig
     try {
-      const content = readFileSync(resolve(configPath), 'utf8')
-      raw = JSON.parse(content)
+      raw = JSON.parse(await readFile(configPath, 'utf8')) as RawMcpConfig
     } catch (err) {
       return { servers: [], errors: [`Failed to read config: ${err instanceof Error ? err.message : String(err)}`] }
     }
@@ -33,11 +38,18 @@ export class ConfigDiscoveryProvider implements McpDiscoveryProvider {
         errors.push('Server entry missing required field: id')
         continue
       }
+      // Validate rather than cast: an unknown transport otherwise travels as a
+      // valid one and fails later, somewhere further from the config that
+      // caused it.
+      if (entry.transport !== undefined && !isTransport(entry.transport)) {
+        errors.push(`Server "${entry.id}": unsupported transport "${entry.transport}"`)
+        continue
+      }
       servers.push({
         id: entry.id,
         name: entry.name ?? entry.id,
-        endpoint: entry.endpoint ?? '',
-        transport: (entry.transport as 'stdio' | 'sse') ?? 'stdio',
+        endpoint: entry.endpoint,
+        transport: entry.transport ?? 'stdio',
         command: entry.command,
         env: entry.env,
       })
