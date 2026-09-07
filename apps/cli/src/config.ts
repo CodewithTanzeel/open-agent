@@ -3,6 +3,7 @@ import { apiKeyVarsFor, resolveCredential, type CredentialLookup, type Credentia
 export interface CliConfig {
   llm: { baseURL: string; apiKey: string; model: string }
   browser: { enabled: boolean; profileDir?: string; keepProfile: boolean; allowEnv?: string[] }
+  computer: { enabled: boolean; model?: string }
   http: {
     enabled: boolean
     allowedHosts?: string[]
@@ -96,6 +97,11 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv, readFile?: CredentialL
     allowEnv: commaList(env.BROWSER_ALLOW_ENV),
   }
 
+  const computer = {
+    enabled: env.COMPUTER_USE === '1' || env.COMPUTER_USE === 'true',
+    model: env.COMPUTER_USE_MODEL || undefined,
+  }
+
   const http = loadHttpToolConfig(env, lookup, secrets)
   if (!http.ok) return { ok: false, error: http.error }
 
@@ -151,6 +157,7 @@ export function loadConfigFromEnv(env: NodeJS.ProcessEnv, readFile?: CredentialL
     config: {
       llm: { baseURL, apiKey: apiKey.value, model },
       browser,
+      computer,
       http: http.config,
       files,
       workspace,
