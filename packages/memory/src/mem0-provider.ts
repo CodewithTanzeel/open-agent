@@ -75,7 +75,7 @@ export class Mem0Provider implements MemoryProvider {
     return { static: results.map((r) => r.memory ?? ''), dynamic: [] }
   }
 
-  async update(request: MemoryUpdate): Promise<{ updated: boolean }> {
+  async update(_request: MemoryUpdate): Promise<{ updated: boolean }> {
     // mem0 SDK doesn't expose a direct update endpoint for memory content.
     // Returning false signals the limitation explicitly rather than silently
     // failing or corrupting state.

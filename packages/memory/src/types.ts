@@ -36,12 +36,6 @@ export interface ForgetRequest {
   reason?: string
 }
 
-/**
- * A provider-agnostic seam for the memory subsystem (see docs/agent-design.md
- * "Memory model"). `SupermemoryProvider` is the reference implementation;
- * any other memory backend implements the same interface so the agent
- * runtime never depends on a specific vendor.
- */
 /** Update an existing memory entry's content or metadata. */
 export interface MemoryUpdate {
   id: string
@@ -50,6 +44,12 @@ export interface MemoryUpdate {
   metadata?: Record<string, unknown>
 }
 
+/**
+ * A provider-agnostic seam for the memory subsystem (see docs/agent-design.md
+ * "Memory model"). `SupermemoryProvider` is the reference implementation;
+ * any other memory backend implements the same interface so the agent
+ * runtime never depends on a specific vendor.
+ */
 export interface MemoryProvider {
   readonly name: string
   /** Store a fact/conversation snippet. Long-term memory + semantic search. */

@@ -40,13 +40,20 @@ describe('InMemoryMemoryProvider', () => {
     expect(results[0].content).toBe('updated')
   })
 
+  it('update() refuses to edit a forgotten memory', async () => {
+    const memory = new InMemoryMemoryProvider()
+    const { id } = await memory.remember({ content: 'original', containerTag: 'user_1' })
+    await memory.forget({ id, containerTag: 'user_1' })
+    expect(await memory.update({ id, containerTag: 'user_1', content: 'revived' })).toEqual({ updated: false })
+  })
+
   it('update() returns false for unknown id', async () => {
     const memory = new InMemoryMemoryProvider()
     const result = await memory.update({ id: 'no-such-id', containerTag: 'user_1', content: 'x' })
     expect(result.updated).toBe(false)
   })
 
-  it('splits a container memory listings into static/dynamic halves for the profile', async () => {
+  it('splits a container’s memories into static/dynamic halves for the profile', async () => {
     const memory = new InMemoryMemoryProvider()
     await memory.remember({ content: 'fact A', containerTag: 'user_1' })
     await memory.remember({ content: 'fact B', containerTag: 'user_1' })
