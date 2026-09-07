@@ -1,0 +1,11 @@
+{
+  "servers": [
+    { "id": "search-server", "name": "Web Search", "transport": "stdio", "command": ["node", "mcp-search-server.js"] },
+    {
+      "id": "terminal-server",
+      "name": "Terminal Tools",
+      "transport": "stdio",
+      "command": ["node", "mcp-terminal-server.js"]
+    }
+  ]
+}
