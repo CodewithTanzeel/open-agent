@@ -42,6 +42,14 @@ export interface ForgetRequest {
  * any other memory backend implements the same interface so the agent
  * runtime never depends on a specific vendor.
  */
+/** Update an existing memory entry's content or metadata. */
+export interface MemoryUpdate {
+  id: string
+  containerTag: string
+  content?: string
+  metadata?: Record<string, unknown>
+}
+
 export interface MemoryProvider {
   readonly name: string
   /** Store a fact/conversation snippet. Long-term memory + semantic search. */
@@ -52,4 +60,6 @@ export interface MemoryProvider {
   profile(containerTag: string, q?: string): Promise<MemoryProfile>
   /** Soft-delete a memory. Memory deletion / privacy controls. */
   forget(request: ForgetRequest): Promise<{ forgotten: boolean }>
+  /** Edit/update an existing memory's content or metadata. */
+  update(request: MemoryUpdate): Promise<{ updated: boolean }>
 }
