@@ -1,4 +1,5 @@
 import type { Message, SessionEvent } from './types.js'
+import type { StoredSession } from './session-store.js'
 
 /**
  * The session log is the source of truth for what a task has seen and done.
@@ -18,6 +19,11 @@ export class SessionLog {
     return this.events.filter((e) => e.taskId === taskId)
   }
 
+  /** All events, regardless of task. */
+  allEvents(): SessionEvent[] {
+    return this.events
+  }
+
   /** Project the model-visible message history out of the durable log. */
   deriveMessages(taskId: string): Message[] {
     const messages: Message[] = []
@@ -33,5 +39,12 @@ export class SessionLog {
       }
     }
     return messages
+  }
+
+  /** Load events from an external source (e.g. session resume). */
+  loadFrom(stored: StoredSession): void {
+    for (const event of stored.events) {
+      this.events.push(event)
+    }
   }
 }
