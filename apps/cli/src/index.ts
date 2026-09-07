@@ -83,7 +83,7 @@ async function main() {
 
   // Handle session resume: load existing session log if --resume is given
   const sessionStore = new SessionStore()
-  let sessions = new SessionLog()
+  const sessions = new SessionLog()
   let resumedSessionId: string | undefined
   let resumedTaskId: string | undefined
 
