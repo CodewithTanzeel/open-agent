@@ -21,7 +21,12 @@ import { httpRequestTool } from '@open-agent/tools-http'
 import { mountTerminalTools, selectSandbox } from '@open-agent/tools-terminal'
 import { BraveSearchProvider, TavilySearchProvider, webSearchTool } from '@open-agent/tools-search'
 import { Context } from '@open-agent/context'
-import { computerUseTaskTool, computerScreenshotTool, createUiTarsGuiAgentFactory } from '@open-agent/tools-computer'
+import {
+  computerUseTaskTool,
+  computerScreenshotTool,
+  createNutJsScreenshotOperator,
+  createUiTarsGuiAgentFactory,
+} from '@open-agent/tools-computer'
 import { loadConfigFromEnv } from './config.js'
 import { createNonInteractiveApprovalHandler, createTerminalApprovalHandler } from './approval.js'
 import { parseCliArgs, USAGE } from './args.js'
@@ -164,20 +169,15 @@ async function main() {
   if (config.computer.enabled) {
     const factory = createUiTarsGuiAgentFactory({
       model: {
-        // Falls back to the LLM config if COMPUTER_USE_MODEL is not set
-        baseURL: config.computer.model ? config.llm.baseURL : config.llm.baseURL,
+        // Same endpoint and key as the main LLM; COMPUTER_USE_MODEL only
+        // swaps the model, since UI-TARS wants a vision-capable one.
+        baseURL: config.llm.baseURL,
         apiKey: config.llm.apiKey,
         model: config.computer.model ?? config.llm.model,
       },
     })
     tools.register(computerUseTaskTool(factory))
-    tools.register(
-      computerScreenshotTool({
-        screenshot: async () => {
-          throw new Error('native screenshot not implemented')
-        },
-      }),
-    )
+    tools.register(computerScreenshotTool(createNutJsScreenshotOperator()))
     io.write('Computer-use tools loaded (COMPUTER_USE=1).\n')
   }
   if (config.browser.enabled) {
