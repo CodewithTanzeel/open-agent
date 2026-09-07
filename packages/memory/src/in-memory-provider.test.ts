@@ -30,6 +30,29 @@ describe('InMemoryMemoryProvider', () => {
     expect(result.forgotten).toBe(false)
   })
 
+  it('update() edits content and metadata of an existing memory', async () => {
+    const memory = new InMemoryMemoryProvider()
+    const { id } = await memory.remember({ content: 'original', containerTag: 'user_1', metadata: { v: 1 } })
+    const updated = await memory.update({ id, containerTag: 'user_1', content: 'updated', metadata: { v: 2 } })
+    expect(updated.updated).toBe(true)
+    const results = await memory.recall({ q: 'updated', containerTag: 'user_1' })
+    expect(results).toHaveLength(1)
+    expect(results[0].content).toBe('updated')
+  })
+
+  it('update() refuses to edit a forgotten memory', async () => {
+    const memory = new InMemoryMemoryProvider()
+    const { id } = await memory.remember({ content: 'original', containerTag: 'user_1' })
+    await memory.forget({ id, containerTag: 'user_1' })
+    expect(await memory.update({ id, containerTag: 'user_1', content: 'revived' })).toEqual({ updated: false })
+  })
+
+  it('update() returns false for unknown id', async () => {
+    const memory = new InMemoryMemoryProvider()
+    const result = await memory.update({ id: 'no-such-id', containerTag: 'user_1', content: 'x' })
+    expect(result.updated).toBe(false)
+  })
+
   it('splits a container’s memories into static/dynamic halves for the profile', async () => {
     const memory = new InMemoryMemoryProvider()
     await memory.remember({ content: 'fact A', containerTag: 'user_1' })

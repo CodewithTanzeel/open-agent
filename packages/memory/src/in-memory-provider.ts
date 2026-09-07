@@ -5,6 +5,7 @@ import type {
   MemoryProfile,
   MemoryProvider,
   MemorySearchResult,
+  MemoryUpdate,
   RecallQuery,
 } from './types.js'
 
@@ -54,6 +55,16 @@ export class InMemoryMemoryProvider implements MemoryProvider {
       static: live.slice(0, half).map((e) => e.content),
       dynamic: live.slice(half).map((e) => e.content),
     }
+  }
+
+  async update(request: MemoryUpdate): Promise<{ updated: boolean }> {
+    const entry = this.entries.find(
+      (e) => e.id === request.id && e.containerTag === request.containerTag && !e.forgotten,
+    )
+    if (!entry) return { updated: false }
+    if (request.content !== undefined) entry.content = request.content
+    if (request.metadata !== undefined) entry.metadata = request.metadata
+    return { updated: true }
   }
 
   async forget(request: ForgetRequest): Promise<{ forgotten: boolean }> {
