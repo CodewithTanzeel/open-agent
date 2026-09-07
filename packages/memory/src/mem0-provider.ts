@@ -4,6 +4,7 @@ import type {
   MemoryProfile,
   MemoryProvider,
   MemorySearchResult,
+  MemoryUpdate,
   RecallQuery,
 } from './types.js'
 
@@ -72,6 +73,13 @@ export class Mem0Provider implements MemoryProvider {
   async profile(containerTag: string): Promise<MemoryProfile> {
     const { results } = await this.client.getAll({ filters: { user_id: containerTag } })
     return { static: results.map((r) => r.memory ?? ''), dynamic: [] }
+  }
+
+  async update(_request: MemoryUpdate): Promise<{ updated: boolean }> {
+    // mem0 SDK doesn't expose a direct update endpoint for memory content.
+    // Returning false signals the limitation explicitly rather than silently
+    // failing or corrupting state.
+    return { updated: false }
   }
 
   async forget(request: ForgetRequest): Promise<{ forgotten: boolean }> {
