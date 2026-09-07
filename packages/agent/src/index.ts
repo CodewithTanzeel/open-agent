@@ -1,6 +1,8 @@
 export * from './types.js'
 export { SessionLog } from './session.js'
 export type { TaskSummary } from './session.js'
+export { LeaseManager } from './lease.js'
+export type { LeaseHolder, LeaseState } from './types.js'
 export { ToolRegistry } from './tools.js'
 export type {
   ApprovalDecision,

@@ -63,6 +63,9 @@ export type SessionEvent =
   | { type: 'tool/call'; taskId: string; at: number; call: ToolCall }
   | { type: 'tool/result'; taskId: string; at: number; callId: string; result: ToolResult }
   | { type: 'retry'; taskId: string; at: number; attempt: number; reason: string }
+  | { type: 'lease/asked'; taskId: string; at: number; requestedBy: string; reason: string }
+  | { type: 'lease/claimed'; taskId: string; at: number; holder: string; reason: string }
+  | { type: 'lease/released'; taskId: string; at: number; holder: string; reason: string }
 
 export type TaskStatus = 'pending' | 'running' | 'completed' | 'cancelled' | 'error'
 
@@ -73,3 +76,12 @@ export interface TaskState {
   updatedAt: number
   error?: string
 }
+
+/** What currently holds the control lease for a task — drives ask-level tool behaviour. */
+export type LeaseHolder =
+  | { kind: 'agent' }
+  | { kind: 'human'; holder: string; since: number; reason: string }
+  | { kind: 'pending'; requestedBy: string; requestedAt: number; reason: string }
+
+/** A control lease transitions between `agent`, `pending`, and `human` holders. */
+export type LeaseState = { holder: LeaseHolder }
