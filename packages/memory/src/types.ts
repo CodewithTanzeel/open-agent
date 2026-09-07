@@ -36,6 +36,14 @@ export interface ForgetRequest {
   reason?: string
 }
 
+/** Update an existing memory entry's content or metadata. */
+export interface MemoryUpdate {
+  id: string
+  containerTag: string
+  content?: string
+  metadata?: Record<string, unknown>
+}
+
 /**
  * A provider-agnostic seam for the memory subsystem (see docs/agent-design.md
  * "Memory model"). `SupermemoryProvider` is the reference implementation;
@@ -52,4 +60,6 @@ export interface MemoryProvider {
   profile(containerTag: string, q?: string): Promise<MemoryProfile>
   /** Soft-delete a memory. Memory deletion / privacy controls. */
   forget(request: ForgetRequest): Promise<{ forgotten: boolean }>
+  /** Edit/update an existing memory's content or metadata. */
+  update(request: MemoryUpdate): Promise<{ updated: boolean }>
 }
