@@ -1,0 +1,7 @@
+{
+  "servers": [
+    { "id": "good-server", "transport": "sse", "endpoint": "https://example.test/mcp" },
+    { "name": "nameless" },
+    { "id": "bad-transport", "transport": "carrier-pigeon" }
+  ]
+}

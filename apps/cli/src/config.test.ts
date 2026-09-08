@@ -18,6 +18,7 @@ describe('loadConfigFromEnv', () => {
       config: {
         llm: { baseURL: 'https://api.openai.com/v1', apiKey: 'sk-x', model: 'gpt-4o-mini' },
         browser: { enabled: false, profileDir: undefined, keepProfile: false, allowEnv: undefined },
+        computer: { enabled: false, model: undefined },
         http: { enabled: false, allowedHosts: undefined, deniedHosts: undefined, allowLocal: false, secrets: {} },
         files: { enabled: false, root: undefined, deny: undefined, allow: undefined, readOnly: false },
         workspace: { session: false, base: undefined },
@@ -46,6 +47,23 @@ describe('loadConfigFromEnv', () => {
       BROWSER_USE: '1',
     })
     expect(result.ok && result.config.browser.enabled).toBe(true)
+  })
+
+  it('enables computer-use when COMPUTER_USE=1', () => {
+    const result = loadConfigFromEnv({ ...base(), COMPUTER_USE: '1' })
+    expect(result.ok && result.config.computer).toEqual({ enabled: true, model: undefined })
+  })
+
+  it('accepts COMPUTER_USE=true as well as 1, and stays off otherwise', () => {
+    expect(loadConfigFromEnv({ ...base(), COMPUTER_USE: 'true' }).ok && true).toBe(true)
+    const off = loadConfigFromEnv({ ...base(), COMPUTER_USE: 'yes' })
+    expect(off.ok && off.config.computer.enabled).toBe(false)
+  })
+
+  it('lets COMPUTER_USE_MODEL override the model without touching the LLM config', () => {
+    const result = loadConfigFromEnv({ ...base(), COMPUTER_USE: '1', COMPUTER_USE_MODEL: 'ui-tars-7b-dpo' })
+    expect(result.ok && result.config.computer.model).toBe('ui-tars-7b-dpo')
+    expect(result.ok && result.config.llm.model).toBe('gpt-4o-mini')
   })
 
   it('uses a throwaway browser profile unless one is named', () => {
