@@ -4,6 +4,7 @@ import type {
   MemoryProfile,
   MemoryProvider,
   MemorySearchResult,
+  MemoryUpdate,
   RecallQuery,
 } from './types.js'
 
@@ -45,6 +46,12 @@ export interface SupermemoryClientLike {
       content?: string
       reason?: string
     }): Promise<{ id: string; forgotten: boolean }>
+    update?(params: {
+      id: string
+      containerTag: string
+      content?: string
+      metadata?: Record<string, unknown>
+    }): Promise<{ id: string; updated: boolean }>
   }
 }
 
@@ -86,6 +93,21 @@ export class SupermemoryProvider implements MemoryProvider {
   async profile(containerTag: string, q?: string): Promise<MemoryProfile> {
     const { profile } = await this.client.profile({ containerTag, q })
     return { static: profile.static, dynamic: profile.dynamic }
+  }
+
+  async update(request: MemoryUpdate): Promise<{ updated: boolean }> {
+    if (!this.client.memories?.update) return { updated: false }
+    try {
+      await this.client.memories.update({
+        id: request.id,
+        containerTag: request.containerTag,
+        content: request.content,
+        metadata: request.metadata,
+      })
+      return { updated: true }
+    } catch {
+      return { updated: false }
+    }
   }
 
   async forget(request: ForgetRequest): Promise<{ forgotten: boolean }> {

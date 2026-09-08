@@ -1,5 +1,6 @@
 export * from './types.js'
 export { SessionLog } from './session.js'
+export type { TaskSummary } from './session.js'
 export { ToolRegistry } from './tools.js'
 export type {
   ApprovalDecision,
