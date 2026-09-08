@@ -1,4 +1,4 @@
-import type { GuiAgentFactory, GuiAgentLike, GuiAgentUpdate } from './types.js'
+import type { GuiAgentFactory, GuiAgentLike, GuiAgentUpdate, ScreenshotOperator, ScreenshotOutput } from './types.js'
 
 export interface UiTarsModelConfig {
   baseURL: string
@@ -55,6 +55,25 @@ export function createUiTarsGuiAgentFactory(options: UiTarsAdapterOptions): GuiA
           })
         },
       }
+    },
+  }
+}
+
+/**
+ * A ScreenshotOperator backed by the same `@ui-tars/operator-nut-js` peer
+ * package `createUiTarsGuiAgentFactory` drives. Kept lazy for the same
+ * reason: the native bindings need a real display, so importing eagerly
+ * would break headless environments that never take a screenshot.
+ *
+ * If the peer isn't installed, the import rejects and `computerScreenshotTool`
+ * surfaces that as a tool error rather than crashing the agent.
+ */
+export function createNutJsScreenshotOperator(): ScreenshotOperator {
+  return {
+    async screenshot(): Promise<ScreenshotOutput> {
+      // @ts-expect-error optional peer dependency, not installed by this package
+      const { NutJSOperator } = await import('@ui-tars/operator-nut-js')
+      return (await new NutJSOperator().screenshot()) as ScreenshotOutput
     },
   }
 }

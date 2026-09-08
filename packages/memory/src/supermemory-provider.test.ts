@@ -56,4 +56,30 @@ describe('SupermemoryProvider', () => {
       reason: 'user requested deletion',
     })
   })
+  it('update() forwards the edit to client.memories.update', async () => {
+    const update = vi.fn().mockResolvedValue({ id: 'mem-1', updated: true })
+    const client = fakeClient({ memories: { forget: vi.fn(), update } })
+    const provider = new SupermemoryProvider(client)
+    const result = await provider.update({ id: 'mem-1', containerTag: 'user_123', content: 'loves Rust now' })
+    expect(result).toEqual({ updated: true })
+    expect(update).toHaveBeenCalledWith({
+      id: 'mem-1',
+      containerTag: 'user_123',
+      content: 'loves Rust now',
+      metadata: undefined,
+    })
+  })
+
+  it('update() reports false when the client has no update method', async () => {
+    // Older Supermemory clients predate the update endpoint.
+    const provider = new SupermemoryProvider(fakeClient())
+    expect(await provider.update({ id: 'mem-1', containerTag: 'user_123', content: 'x' })).toEqual({ updated: false })
+  })
+
+  it('update() reports false when the client throws', async () => {
+    const update = vi.fn().mockRejectedValue(new Error('network down'))
+    const client = fakeClient({ memories: { forget: vi.fn(), update } })
+    const provider = new SupermemoryProvider(client)
+    expect(await provider.update({ id: 'mem-1', containerTag: 'user_123', content: 'x' })).toEqual({ updated: false })
+  })
 })
