@@ -4,6 +4,7 @@ import { ToolRegistry } from './tools.js'
 import { AgentLoop, type AgentLoopOptions } from './agent-loop.js'
 import type { LlmAdapter } from './types.js'
 import type { Logger } from './logger.js'
+import { JobQueue } from './job-queue.js'
 
 /** Mounts `ctx.sessions`: the append-only session event log. */
 export const sessionPlugin: Plugin = (ctx: Context) => {
@@ -42,4 +43,14 @@ export function agentLoopPlugin(
       ctx.set('agentLoop', loop)
     },
   }
+}
+
+/**
+ * Mounts `ctx.jobQueue`, a simple background task queue using the active agent loop.
+ */
+export const jobQueuePlugin: Plugin = {
+  inject: ['agentLoop'],
+  apply(ctx: Context) {
+    ctx.set('jobQueue', new JobQueue(ctx.get('agentLoop')!))
+  },
 }

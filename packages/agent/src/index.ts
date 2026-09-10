@@ -25,5 +25,8 @@ export { NetworkPolicyError, checkResolvedAddresses, checkUrl, hostMatches, isPr
 export type { NetworkPolicy } from './network-policy.js'
 export { consoleLogger, silentLogger } from './logger.js'
 export type { Logger } from './logger.js'
-export { sessionPlugin, toolsPlugin, llmPlugin, agentLoopPlugin } from './plugins.js'
+export { sessionPlugin, toolsPlugin, llmPlugin, agentLoopPlugin, jobQueuePlugin } from './plugins.js'
 export { CustomTool } from './custom-tool.js'
+
+export { JobQueue } from './job-queue.js'
+export type { JobInfo } from './job-queue.js'
