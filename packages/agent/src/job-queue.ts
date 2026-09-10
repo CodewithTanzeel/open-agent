@@ -10,6 +10,8 @@ export interface JobInfo {
   startedAt?: number
   completedAt?: number
   error?: string
+  retries?: number
+  maxRetries?: number
 }
 
 export class JobQueue {
@@ -21,13 +23,15 @@ export class JobQueue {
 
   constructor(private readonly agentLoop: AgentLoop) {}
 
-  enqueue(input: string): string {
+  enqueue(input: string, maxRetries = 3): string {
     const id = randomUUID()
     this.jobs.set(id, {
       id,
       taskInput: input,
       status: 'pending',
       createdAt: Date.now(),
+      retries: 0,
+      maxRetries,
     })
     this.executionQueue.push(id)
     this.pump().catch(() => {})
@@ -36,6 +40,22 @@ export class JobQueue {
 
   list(): JobInfo[] {
     return Array.from(this.jobs.values()).sort((a, b) => a.createdAt - b.createdAt)
+  }
+
+  retry(id: string): boolean {
+    const job = this.jobs.get(id)
+    if (!job) return false
+    if (job.status !== 'error' && job.status !== 'cancelled') return false
+    if ((job.retries ?? 0) >= (job.maxRetries ?? 3)) return false
+
+    job.status = 'pending'
+    job.retries = (job.retries ?? 0) + 1
+    job.completedAt = undefined
+    job.error = undefined
+    job.startedAt = undefined
+    this.executionQueue.push(id)
+    this.pump().catch(() => {})
+    return true
   }
 
   cancel(id: string): boolean {
@@ -68,7 +88,7 @@ export class JobQueue {
     return randomUUID()
   }
 
-  private async pump() {
+  private async pump(): Promise<void> {
     if (this.activeJobs >= this.maxConcurrent) return
     const id = this.executionQueue.shift()
     if (!id) return
