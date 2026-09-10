@@ -5,6 +5,7 @@ import { AgentLoop, type AgentLoopOptions } from './agent-loop.js'
 import type { LlmAdapter } from './types.js'
 import type { Logger } from './logger.js'
 import { JobQueue } from './job-queue.js'
+import { NotificationLog } from './notifications.js'
 
 /** Mounts `ctx.sessions`: the append-only session event log. */
 export const sessionPlugin: Plugin = (ctx: Context) => {
@@ -43,6 +44,11 @@ export function agentLoopPlugin(
       ctx.set('agentLoop', loop)
     },
   }
+}
+
+/** Mounts `ctx.notifications`: append-only notification log for job events. */
+export const notificationPlugin: Plugin = (ctx: Context) => {
+  ctx.set('notifications', new NotificationLog())
 }
 
 /**
