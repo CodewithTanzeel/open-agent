@@ -48,10 +48,11 @@ export function parseCliArgs(argv: string[]): ArgsResult {
   const options = {
     print: { type: 'boolean', short: 'p', default: false },
     yes: { type: 'boolean', short: 'y', default: false },
+    profile: { type: 'string' },
     help: { type: 'boolean', short: 'h', default: false },
   } as const
 
-  let values: { print: boolean; yes: boolean; help: boolean }
+  let values: { print: boolean; yes: boolean; profile?: string; help: boolean }
   let positionals: string[]
   try {
     const parsed = parseArgs({ args: argv, options, allowPositionals: true })
@@ -60,13 +61,13 @@ export function parseCliArgs(argv: string[]): ArgsResult {
   } catch (err) {
     return { ok: false, error: `${err instanceof Error ? err.message : String(err)}\n\n${USAGE}` }
   }
-  if (values.help) return { ok: true, args: { mode: 'repl', approveAsk: false, help: true } }
+  if (values.help) return { ok: true, args: { mode: 'repl', approveAsk: false, profile: values.profile, help: true } }
 
   if (!values.print) {
     if (positionals.length > 0) {
       return { ok: false, error: `Unexpected argument "${positionals[0]}". Did you mean -p "${positionals[0]}"?` }
     }
-    return { ok: true, args: { mode: 'repl', approveAsk: values.yes, help: false } }
+    return { ok: true, args: { mode: 'repl', approveAsk: values.yes, profile: values.profile, help: false } }
   }
 
   if (positionals.length > 1) {
@@ -75,6 +76,6 @@ export function parseCliArgs(argv: string[]): ArgsResult {
 
   return {
     ok: true,
-    args: { mode: 'print', prompt: positionals[0], approveAsk: values.yes, help: false },
+    args: { mode: 'print', prompt: positionals[0], approveAsk: values.yes, profile: values.profile, help: false },
   }
 }

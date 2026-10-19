@@ -220,7 +220,7 @@ async function main() {
   let disposeTerminalTools: (() => void) | undefined
 
   if (finalConfig.files.enabled || finalConfig.shell.enabled) {
-    const policy = { deny: finalConfig.files.deny, allow: finalConfig.files.allow, readOnly: config.files.readOnly }
+    const policy = { deny: finalConfig.files.deny, allow: finalConfig.files.allow, readOnly: finalConfig.files.readOnly }
     workspace = finalConfig.workspace.session
       ? await createSessionWorkspace({ base: finalConfig.workspace.base, policy })
       : await openWorkspace({ root: finalConfig.files.root ?? finalConfig.shell.root ?? process.cwd(), policy })
