@@ -12,11 +12,13 @@ export interface AgentProfile {
 export function applyProfile(config: CliConfig, profile: AgentProfile): CliConfig {
   return {
     ...config,
-    llm: profile.llm ? { ...config.llm, ...profile.llm } : config.llm,
-    browser: profile.browser ? { ...config.browser, ...profile.browser } : config.browser,
-    computer: profile.computer ? { ...config.computer, ...profile.computer } : config.computer,
-    shell: profile.shell ? { ...config.shell, ...profile.shell } : config.shell,
-    memory: profile.memory ? { ...config.memory, ...profile.memory } : config.memory,
-    search: profile.search ? { ...config.search, ...profile.search } : config.search,
+    llm: (profile.llm ? { ...config.llm, ...profile.llm } : config.llm) as CliConfig['llm'],
+    browser: (profile.browser ? { ...config.browser, ...profile.browser } : config.browser) as CliConfig['browser'],
+    computer: (profile.computer
+      ? { ...config.computer, ...profile.computer }
+      : config.computer) as CliConfig['computer'],
+    shell: (profile.shell ? { ...config.shell, ...profile.shell } : config.shell) as CliConfig['shell'],
+    memory: (profile.memory ? { ...config.memory, ...profile.memory } : config.memory) as CliConfig['memory'],
+    search: (profile.search ? { ...config.search, ...profile.search } : config.search) as CliConfig['search'],
   }
 }

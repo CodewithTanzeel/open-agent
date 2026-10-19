@@ -220,7 +220,11 @@ async function main() {
   let disposeTerminalTools: (() => void) | undefined
 
   if (finalConfig.files.enabled || finalConfig.shell.enabled) {
-    const policy = { deny: finalConfig.files.deny, allow: finalConfig.files.allow, readOnly: finalConfig.files.readOnly }
+    const policy = {
+      deny: finalConfig.files.deny,
+      allow: finalConfig.files.allow,
+      readOnly: finalConfig.files.readOnly,
+    }
     workspace = finalConfig.workspace.session
       ? await createSessionWorkspace({ base: finalConfig.workspace.base, policy })
       : await openWorkspace({ root: finalConfig.files.root ?? finalConfig.shell.root ?? process.cwd(), policy })
@@ -283,7 +287,9 @@ async function main() {
     const { default: Supermemory } = await import('supermemory')
     ctx.plugin(
       memoryPlugin(
-        new SupermemoryProvider(new Supermemory({ apiKey: finalConfig.memory.apiKey, baseURL: finalConfig.memory.baseURL })),
+        new SupermemoryProvider(
+          new Supermemory({ apiKey: finalConfig.memory.apiKey, baseURL: finalConfig.memory.baseURL }),
+        ),
       ),
     )
   } else if (finalConfig.memory.provider === 'mem0') {
