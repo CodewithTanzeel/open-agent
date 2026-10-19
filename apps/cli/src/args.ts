@@ -7,6 +7,8 @@ export interface CliArgs {
   prompt?: string
   /** Approve `ask`-level tool calls automatically, since no human is present. */
   approveAsk: boolean
+  /** Load an agent profile (YAML) that overrides config fields. */
+  profile?: string
   help: boolean
 }
 

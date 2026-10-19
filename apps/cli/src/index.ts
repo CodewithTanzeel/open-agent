@@ -1,6 +1,7 @@
 #!/usr/bin/env -S npx tsx
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readFile } from 'node:fs/promises'
 import { createInterface } from 'node:readline/promises'
 import dotenv from 'dotenv'
 import {
@@ -32,6 +33,8 @@ import { createNonInteractiveApprovalHandler, createTerminalApprovalHandler } fr
 import { parseCliArgs, USAGE } from './args.js'
 import { runHeadless } from './headless.js'
 import { runRepl, type AbortRef, type ReplIO } from './repl.js'
+import { applyProfile, type AgentProfile } from './profiles.js'
+import YAML from 'yaml'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 // apps/cli/src -> apps/cli -> apps -> repo root
@@ -78,6 +81,14 @@ async function main() {
     return
   }
   const { config } = result
+
+  // Reviewer: apply profile to parsed config instead of writing into process.env
+  let finalConfig = config
+  if (args.profile) {
+    const profileRaw = await readFile(args.profile, 'utf8')
+    const profileDoc = YAML.parse(profileRaw) as AgentProfile
+    finalConfig = applyProfile(config, profileDoc)
+  }
 
   // Loaded before any stdin wiring, and deliberately so. An await that yields
   // to real I/O between createInterface() below and the first prompt gives
@@ -166,21 +177,21 @@ async function main() {
   let disposeBrowserTools: (() => void) | undefined
 
   // --- Computer-use tools (UI-TARS: screenshot + full mouse/keyboard loop) ---
-  if (config.computer.enabled) {
+  if (finalConfig.computer.enabled) {
     const factory = createUiTarsGuiAgentFactory({
       model: {
         // Same endpoint and key as the main LLM; COMPUTER_USE_MODEL only
         // swaps the model, since UI-TARS wants a vision-capable one.
-        baseURL: config.llm.baseURL,
-        apiKey: config.llm.apiKey,
-        model: config.computer.model ?? config.llm.model,
+        baseURL: finalConfig.llm.baseURL,
+        apiKey: finalConfig.llm.apiKey,
+        model: finalConfig.computer.model ?? finalConfig.llm.model,
       },
     })
     tools.register(computerUseTaskTool(factory))
     tools.register(computerScreenshotTool(createNutJsScreenshotOperator()))
     io.write('Computer-use tools loaded (COMPUTER_USE=1).\n')
   }
-  if (config.browser.enabled) {
+  if (finalConfig.browser.enabled) {
     // Via io.write, not console.log: in print mode that routes to stderr so
     // it cannot land in the captured answer.
     io.write('Starting browser-use (python -m browser_use.mcp)...\n')
@@ -188,14 +199,14 @@ async function main() {
     // is, reachable by any page the agent visits. Worth saying out loud when
     // someone has asked for it.
     io.write(
-      config.browser.profileDir
-        ? `Browser profile: ${config.browser.profileDir} (SHARED — the agent gets any session logged in there)\n`
+      finalConfig.browser.profileDir
+        ? `Browser profile: ${finalConfig.browser.profileDir} (SHARED — the agent gets any session logged in there)\n`
         : 'Browser profile: a throwaway one, discarded when this run ends\n',
     )
     disposeBrowserTools = await mountBrowserUseTools(tools, {
-      profileDir: config.browser.profileDir,
-      keepProfile: config.browser.keepProfile,
-      allowEnv: config.browser.allowEnv,
+      profileDir: finalConfig.browser.profileDir,
+      keepProfile: finalConfig.browser.keepProfile,
+      allowEnv: finalConfig.browser.allowEnv,
     })
   }
 
@@ -208,20 +219,20 @@ async function main() {
   let disposeFileTools: (() => void) | undefined
   let disposeTerminalTools: (() => void) | undefined
 
-  if (config.files.enabled || config.shell.enabled) {
-    const policy = { deny: config.files.deny, allow: config.files.allow, readOnly: config.files.readOnly }
-    workspace = config.workspace.session
-      ? await createSessionWorkspace({ base: config.workspace.base, policy })
-      : await openWorkspace({ root: config.files.root ?? config.shell.root ?? process.cwd(), policy })
+  if (finalConfig.files.enabled || finalConfig.shell.enabled) {
+    const policy = { deny: finalConfig.files.deny, allow: finalConfig.files.allow, readOnly: config.files.readOnly }
+    workspace = finalConfig.workspace.session
+      ? await createSessionWorkspace({ base: finalConfig.workspace.base, policy })
+      : await openWorkspace({ root: finalConfig.files.root ?? finalConfig.shell.root ?? process.cwd(), policy })
 
-    if (config.workspace.session) {
+    if (finalConfig.workspace.session) {
       io.write(`Working in a session workspace at ${workspace.root}\n`)
     }
-    if (config.files.enabled) disposeFileTools = mountFileTools(tools, workspace)
+    if (finalConfig.files.enabled) disposeFileTools = mountFileTools(tools, workspace)
 
-    if (config.shell.enabled) {
-      const sandbox = await selectSandbox(config.shell.sandbox, {
-        docker: { image: config.shell.sandboxImage },
+    if (finalConfig.shell.enabled) {
+      const sandbox = await selectSandbox(finalConfig.shell.sandbox, {
+        docker: { image: finalConfig.shell.sandboxImage },
       })
 
       // Not registering the tools is the whole point of the check. Falling
@@ -230,7 +241,7 @@ async function main() {
       // off until someone says which of the two they want.
       if (!sandbox) {
         io.write(
-          `Shell tools are off: no sandbox is available (asked for "${config.shell.sandbox}").\n` +
+          `Shell tools are off: no sandbox is available (asked for "${finalConfig.shell.sandbox}").\n` +
             `Install bubblewrap or Docker, or set SHELL_SANDBOX=none to run commands with your own privileges.\n`,
         )
       } else {
@@ -240,49 +251,49 @@ async function main() {
           io.write(`Shell sandbox: ${sandbox.describe()}\n`)
         }
         disposeTerminalTools = mountTerminalTools(tools, workspace, {
-          allowedCommands: config.shell.allowedCommands,
-          allowEnv: config.shell.allowEnv,
-          timeoutMs: config.shell.timeoutMs,
+          allowedCommands: finalConfig.shell.allowedCommands,
+          allowEnv: finalConfig.shell.allowEnv,
+          timeoutMs: finalConfig.shell.timeoutMs,
           sandbox,
-          network: config.shell.network,
+          network: finalConfig.shell.network,
         })
       }
     }
   }
 
-  if (config.http.enabled) {
+  if (finalConfig.http.enabled) {
     tools.register(
       httpRequestTool({
-        allowedHosts: config.http.allowedHosts,
-        network: { deniedHosts: config.http.deniedHosts, allowLocal: config.http.allowLocal },
-        secrets: config.http.secrets,
+        allowedHosts: finalConfig.http.allowedHosts,
+        network: { deniedHosts: finalConfig.http.deniedHosts, allowLocal: finalConfig.http.allowLocal },
+        secrets: finalConfig.http.secrets,
       }),
     )
   }
 
-  if (config.search.provider !== 'none') {
+  if (finalConfig.search.provider !== 'none') {
     const searchProvider =
-      config.search.provider === 'brave'
-        ? new BraveSearchProvider({ apiKey: config.search.apiKey })
-        : new TavilySearchProvider({ apiKey: config.search.apiKey })
+      finalConfig.search.provider === 'brave'
+        ? new BraveSearchProvider({ apiKey: finalConfig.search.apiKey })
+        : new TavilySearchProvider({ apiKey: finalConfig.search.apiKey })
     tools.register(webSearchTool(searchProvider))
   }
 
-  if (config.memory.provider === 'supermemory') {
+  if (finalConfig.memory.provider === 'supermemory') {
     const { default: Supermemory } = await import('supermemory')
     ctx.plugin(
       memoryPlugin(
-        new SupermemoryProvider(new Supermemory({ apiKey: config.memory.apiKey, baseURL: config.memory.baseURL })),
+        new SupermemoryProvider(new Supermemory({ apiKey: finalConfig.memory.apiKey, baseURL: finalConfig.memory.baseURL })),
       ),
     )
-  } else if (config.memory.provider === 'mem0') {
+  } else if (finalConfig.memory.provider === 'mem0') {
     const { default: MemoryClient } = await import('mem0ai')
-    ctx.plugin(memoryPlugin(new Mem0Provider(new MemoryClient({ apiKey: config.memory.apiKey }))))
+    ctx.plugin(memoryPlugin(new Mem0Provider(new MemoryClient({ apiKey: finalConfig.memory.apiKey }))))
   } else {
     ctx.plugin(memoryPlugin(new InMemoryMemoryProvider()))
   }
 
-  const llm = new OpenAiCompatibleProvider(config.llm)
+  const llm = new OpenAiCompatibleProvider(finalConfig.llm)
   const loop = new AgentLoop({
     sessions,
     tools,
@@ -290,7 +301,7 @@ async function main() {
     systemPrompt: instructions ? buildSystemPrompt(instructions) : undefined,
     // Wrapped so a resolved API key cannot reach the log through an
     // error body, a tool argument, or anything else that happens to carry it.
-    logger: createRedactingLogger(process.env.DEBUG ? consoleLogger : silentLogger, config.secrets),
+    logger: createRedactingLogger(process.env.DEBUG ? consoleLogger : silentLogger, finalConfig.secrets),
   })
 
   try {

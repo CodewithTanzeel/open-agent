@@ -25,7 +25,8 @@
     "dotenv": "^16.4.5",
     "ink": "^7.1.1",
     "ink-text-input": "^6.0.0",
-    "react": "^19.2.8"
+    "react": "^19.2.8",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/react": "^19.2.18",
